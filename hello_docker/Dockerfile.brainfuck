@@ -1,0 +1,6 @@
+FROM ubuntu:22.04 as brainfuck_build
+RUN apt-get update && apt-get install -y build-essential python3
+WORKDIR /src
+COPY hello_plugins/hello_brainfuck.bf .
+COPY hello_build/build_brainfuck.sh .
+RUN chmod +x build_brainfuck.sh && ./build_brainfuck.sh

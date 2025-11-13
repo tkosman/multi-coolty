@@ -1,0 +1,6 @@
+FROM ubuntu:22.04 as rust_build
+RUN apt-get update && apt-get install -y build-essential rustc cargo
+WORKDIR /src
+COPY hello_plugins/hello_rust.rs .
+COPY hello_build/build_rust.sh .
+RUN chmod +x build_rust.sh && ./build_rust.sh
