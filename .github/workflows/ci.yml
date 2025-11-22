@@ -1,0 +1,87 @@
+name: Polyglot Hello World CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  check-plugin-consistency:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: List files in plugin-related folders
+        run: |
+          ls hello_plugins > plugins.txt
+          ls hello_build > buildscripts.txt
+          ls hello_docker > dockerfiles.txt
+          echo "hello_plugins:"; cat plugins.txt
+          echo "hello_build:"; cat buildscripts.txt
+          echo "hello_docker:"; cat dockerfiles.txt
+
+      - name: Check file count consistency
+        run: |
+          pcount=$(wc -l < plugins.txt)
+          bcount=$(wc -l < buildscripts.txt)
+          dcount=$(wc -l < dockerfiles.txt)
+          echo "plugin count: $pcount, buildscript count: $bcount, dockerfile count: $dcount"
+          if [ "$pcount" -ne "$bcount" ] || [ "$pcount" -ne "$dcount" ]; then
+            echo "Mismatch in file counts!"; exit 1
+          fi
+
+      - name: Check filename correspondence
+        run: |
+          # Remove extensions and prefixes for comparison
+          awk -F. '{print $1}' plugins.txt | sed 's/^hello_//' | sort > pnames.txt
+          awk -F. '{print $1}' buildscripts.txt | sed 's/^build_//' | sort > bnames.txt
+          awk -F. '{print $2}' dockerfiles.txt | sort > dnames.txt
+          diff -u pnames.txt bnames.txt || { echo "Mismatch between plugin and buildscript names!"; exit 1; }
+          diff -u pnames.txt dnames.txt || { echo "Mismatch between plugin and dockerfile names!"; exit 1; }
+          echo "All plugin, buildscript, and dockerfile names match."
+  build-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+
+      - name: Build all plugins and loader (Dockerized)
+        run: |
+          ./build.sh
+
+      - name: Run final Docker image and capture output
+        run: |
+          docker run --rm hello_final > output.txt
+
+      - name: List plugin sources
+        id: plugins
+        run: |
+          ls hello_plugins > plugins.txt
+          cat plugins.txt
+
+      - name: Check output for Hello World from each plugin (auto-detect)
+        run: |
+          missing=0
+          while read plugin; do
+            # Extract language name from filename: hello_<lang>.<ext>
+            fname=$(basename "$plugin")
+            lang=$(echo "$fname" | sed -E 's/^hello_([^.]+)\..*$/\1/')
+            # Capitalize first letter, keep rest as-is (C++ stays C++, etc.)
+            lang_cap=$(echo "$lang" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')
+            expect="Hello, $lang_cap!"
+            # For brainfuck, skip strict check (prints raw chars)
+            if [ "$lang" = "brainfuck" ]; then
+              continue
+            fi
+            if ! grep -q "$expect" output.txt; then
+              echo "Missing: $expect"
+              missing=1
+            fi
+          done < plugins.txt
+          if [ "$missing" -eq 1 ]; then
+            echo "Some Hello World messages missing!"; exit 1
+          fi
+          echo "All expected Hello World messages found."

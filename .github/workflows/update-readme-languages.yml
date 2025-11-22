@@ -1,0 +1,51 @@
+name: Update README Languages List
+
+on:
+  workflow_run:
+    workflows: ["Polyglot Hello World CI"]
+    types:
+      - completed
+
+jobs:
+  update-readme-languages:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+        with:
+          persist-credentials: true
+
+      - name: Generate languages markdown
+        run: |
+          echo "### Supported Languages" > languages_section.md
+          echo "The following programming languages are supported:" >> languages_section.md
+          for f in hello_plugins/hello_*.*; do
+            fname=$(basename "$f")
+            lang=$(echo "$fname" | sed -E 's/^hello_([^.]+)\..*$/\1/')
+            lang_cap=$(echo "$lang" | awk '{print toupper(substr($0,1,1)) substr($0,2)}')
+            echo "- $lang_cap" >> languages_section.md
+          done
+
+      - name: Update README.md languages section
+        run: |
+          if [ ! -f README.md ]; then touch README.md; fi
+          awk -v new_section="$(cat languages_section.md)" '
+            BEGIN { in_section=0 }
+            /^### Supported Languages/ { print new_section; in_section=1; next }
+            in_section && /^### / { in_section=0 }
+            !in_section { print }
+          ' README.md > README.tmp && mv README.tmp README.md
+
+      - name: Show modified README.md
+        run: |
+          echo "Modified README.md content:" && cat README.md
+
+      - name: Commit and push changes
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "Update supported languages list in README.md"
+          file_pattern: README.md
+          commit_user_name: GitHub Actions
+          commit_user_email: actions@github.com
