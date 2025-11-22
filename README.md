@@ -4,7 +4,9 @@ This project provides code snippets and examples in multiple programming languag
 ### Supported Languages
 The following programming languages are supported:
 - Brainfuck
-
-
+- C
+- Cpp
+- Go
+- Rust
 ### How to Use
 To use the code snippets, simply copy and paste them into your project files as needed.
