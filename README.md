@@ -39,7 +39,7 @@ This project is about contributions! To add a new language plugin:
 2. **Add your plugin:**
 	- Place your hello-world source file in `hello_plugins/` (e.g., `hello_mylang.ext`).
 	- Add a build script in `hello_build/` (e.g., `build_mylang.sh`).
-	- Add a Dockerfile in `hello_docker/` (e.g., `Dockerfile.mylang`).
+	- Add a Dockerfile in `hello_docker/` (e.g., `Dockerfile.mylang`). \
 Please refer to existing plugins for guidance.
 3. **Submit a pull request**, add which language you implemented.
 4. **Monitor the CI checks** to ensure your plugin builds and runs correctly.
